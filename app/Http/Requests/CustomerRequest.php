@@ -34,7 +34,6 @@ class CustomerRequest extends ApiRequest
         } else {
             return [
                 'tokensocial' => 'string',
-                'fullname' => 'string',
             ];
         }
 

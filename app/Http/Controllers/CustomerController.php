@@ -6,11 +6,20 @@ use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use App\Models\Customer;
 use App\Models\OtpPhone;
+use App\Models\User;
 use App\Http\Requests\CustomerRequest;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\JWTAuth;
+use Laravel\Socialite\Facades\Socialite;
 
 class CustomerController extends Controller
 {
+
+    protected $jwt;
+
+    public function __construct(JWTAuth $jwtAuth) {
+        $this->jwt = $jwtAuth;
+    }
 
     /**
      * Display a listing of the resource.
@@ -42,19 +51,84 @@ class CustomerController extends Controller
     {
         if(isset($request)) {
             if($request['typelogin'] === 1) {
-                $this->checkCustomerLoginByPhone($request['phone']);
+                return $this->checkCustomerLoginByPhone($request['phone']);
             } elseif($request['typelogin'] === 2) {
-                if (Hash::check($request->password, $user->password)) {
-                    $token = $user->createToken('Laravel Password Grant Client')->accessToken;
-                    $response = ['token' => $token];
-                    return response($response, 200);
-                } else {
-                    $response = ["message" => "Password mismatch"];
-                    return response($response, 422);
-                }
-            // $this->checkCustomerLoginBySocial($request['tokensocial'], $request['fullname']);
+                $provider='google';
+                $driver= Socialite::driver($provider);
+                $socialUserObject = $driver->userFromToken($request['tokensocial']);
+                return $this->checkCustomerLoginBySocial($socialUserObject->id, $socialUserObject->name);
             }
         }
+    }
+    
+    /**
+     * Get a JWT via given credentials.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function login(Request $request)
+    {
+        if(isset($request)) {
+            if((int)$request['typelogin'] === 1) {
+                $phone = Customer::CheckLoginPhoneCustomer($request['phone'])->first();
+                if (!($token = $this->jwt->fromUser($phone))) {
+                    return response()->json([
+                        'status' => 'error',
+                        'error' => 'invalid.credentials',
+                        'msg' => 'Invalid Credentials.'
+                    ], Response::HTTP_BAD_REQUEST);
+                }
+                return $this->respondWithToken($token);
+            }
+        }
+    }
+
+    /**
+     * Get the authenticated User.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function me()
+    {
+        return response()->json(auth()->user());
+    }
+
+    /**
+     * Log the user out (Invalidate the token).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function logout()
+    {
+        auth()->logout();
+
+        return response()->json(['message' => 'Successfully logged out']);
+    }
+
+    /**
+     * Refresh a token.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function refresh()
+    {
+        return $this->respondWithToken(auth()->refresh());
+    }
+
+    /**
+     * Get the token array structure.
+     *
+     * @param  string $token
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function respondWithToken($token)
+    {
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth()->factory()->getTTL() * 2629743
+        ], Response::HTTP_OK);
     }
  
     /**
@@ -67,7 +141,9 @@ class CustomerController extends Controller
         $optPhone = new OtpPhone();
         $newCustomer = new Customer();
         $checkPhone = Customer::CheckLoginPhoneCustomer($phone)->first();
+
         if($checkPhone != null) {
+            return response()->json(array('success' => true, 'phone'=> $checkPhone->Phone , 'status_next_page' => $checkPhone->TypeLogin), Response::HTTP_OK);
             // return 1;
             // if(OtpPhone::CheckOtpPhoneCode($checkPhone->otpphoneid)) {
             //     $checkPhone->otpphoneid = "1234567";
@@ -81,7 +157,7 @@ class CustomerController extends Controller
             $newCustomer->otpphoneid = $optPhone->id;
             $newCustomer->typelogin = 1;
             if($newCustomer->save()) {
-                return response()->json(array('success' => true, 'status_next_page' => $newCustomer->typelogin), Response::HTTP_OK);
+                return response()->json(array('success' => true, 'phone'=> $newCustomer->phone ,'status_next_page' => $newCustomer->typelogin), Response::HTTP_OK);
             }
         }
     }
@@ -96,67 +172,15 @@ class CustomerController extends Controller
         $newCustomer = new Customer();
         $checkSocial = Customer::CheckLoginSocialCustomer($tokensocial)->first();
         if($checkSocial != null) {
-            // if(OtpPhone::CheckOtpPhoneCode($checkPhone->otpphoneid)) {
-            //     $checkPhone->otpphoneid = "1234567";
-            //     $checkPhone->save();
-            // }ss
+            return response()->json(array('success' => true, 'status_next_page' => $checkSocial->TypeLogin, 'info'=>$checkSocial ), Response::HTTP_OK);
         } else {
             $newCustomer->phone = "";
             $newCustomer->fullname = $name;
             $newCustomer->tokensocial = $tokensocial;
             $newCustomer->typelogin = 2;
             if($newCustomer->save()) {
-
-                return response()->json(array('success' => true, 'status_next_page' => $newCustomer->typelogin), Response::HTTP_OK);
+                return response()->json(array('success' => true, 'status_next_page' => $newCustomer->typelogin, 'info'=>$newCustomer ), Response::HTTP_OK);
             }
         }
-    }
-
-
-
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {        
-         
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(UpdateShopMember $request, $id)
-    {
-
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-
     }
 }

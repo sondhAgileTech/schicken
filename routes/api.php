@@ -2,7 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\RestaurantController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -17,4 +19,16 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
+Route::group([
+    'middleware' => 'api',
+    'prefix' => 'auth'
+
+], function ($router) {
+
+    Route::post('login', [CustomerController::class, 'login']);
+    Route::post('logout', [CustomerController::class, 'logout']);
+    Route::post('refresh',  [CustomerController::class, 'refresh']);
+    Route::get('me', [CustomerController::class, 'me']);
+});
 Route::post('/customer',[CustomerController::class, 'store']);
+Route::get('/restaurant',[RestaurantController::class, 'getRestaurant']);

@@ -1,18 +1,19 @@
 <?php
 
 namespace App\Models;
-
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Passport\HasApiTokens;
+use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Customer extends Model
+class Customer extends Authenticatable implements JWTSubject
 {
-    use HasFactory, HasApiTokens;
+    use Notifiable;
 
     protected $table = 'customer';
 
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'Id';
 
     /**
      * Indicates if the model should be timestamped.
@@ -54,5 +55,15 @@ class Customer extends Model
     public function scopeCheckLoginSocialCustomer($query, $tokensocial)
     {
         return $query->where('tokensocial', $tokensocial);
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
     }
 }

@@ -32,10 +32,12 @@ class Restaurant extends Model
         $dateFrom = strtotime(''.$now->year.'-'.$now->month.'-'.$now->day.' 00:00:00');
         $dateTo = strtotime(''.$now->year.'-'.$now->month.'-'.$now->day.' 23:59:00');
         return Restaurant::selectRaw("*,( 6371 * acos( cos( radians(?) ) * cos( radians( Latitude ) ) * cos( radians( Longtitude ) - radians(?)) + sin( radians(?) ) * sin( radians( Latitude ) ))) AS distance", [$latitude, $longitude, $latitude])
-                          ->with(['quantity' => function($subQuery) use ($dateFrom, $dateTo ) {
+                            ->with(['quantity' => function($subQuery) use ($dateFrom, $dateTo ) {
                             return $subQuery->selectRaw('SetQuantityProduct.RestaurantId,sum(SetQuantityProduct.Quantity) as totalQuantity ,sum(SetQuantityProduct.QuantitySold) as totalQuantitySold')
                                             ->whereBetween('CreatedTime', [$dateFrom, $dateTo])
                                             ->groupBy('SetQuantityProduct.RestaurantId');
-        }]);
+                            }])
+                            ->where('Publish',1)
+                            ->where('IsDelete',0);
     }
 }

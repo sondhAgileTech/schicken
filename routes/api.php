@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\RestaurantController;
+use App\Http\Controllers\ProductController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -32,3 +33,5 @@ Route::group([
 });
 Route::post('/customer',[CustomerController::class, 'store']);
 Route::get('/restaurant',[RestaurantController::class, 'getRestaurant']);
+Route::get('/product',[ProductController::class, 'getProduct']);
+Route::get('/product/{product_id}',[ProductController::class, 'getDetailProduct']);

@@ -23,15 +23,17 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::group([
     'middleware' => 'api',
     'prefix' => 'auth'
-
 ], function ($router) {
-
     Route::post('login', [CustomerController::class, 'login']);
+});
+Route::post('/customer',[CustomerController::class, 'store']);
+
+Route::group(['middleware' => ['jwt.verify'],'prefix' => 'auth'], function() {
     Route::post('logout', [CustomerController::class, 'logout']);
     Route::post('refresh',  [CustomerController::class, 'refresh']);
     Route::get('me', [CustomerController::class, 'me']);
+    Route::get('/restaurant',[RestaurantController::class, 'getRestaurant']);
+    Route::get('/product',[ProductController::class, 'getProduct']);
+    Route::get('/product/{product_id}',[ProductController::class, 'getDetailProduct']);
+    Route::post('/addbill',[ProductController::class, 'addBill']);
 });
-Route::post('/customer',[CustomerController::class, 'store']);
-Route::get('/restaurant',[RestaurantController::class, 'getRestaurant']);
-Route::get('/product',[ProductController::class, 'getProduct']);
-Route::get('/product/{product_id}',[ProductController::class, 'getDetailProduct']);
